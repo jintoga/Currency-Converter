@@ -2,6 +2,9 @@ package com.jintoga.currencyconverter.ui.converter.adapter
 
 import android.content.Context
 import android.support.v7.widget.RecyclerView
+import android.text.Editable
+import android.text.TextWatcher
+import android.text.method.DigitsKeyListener
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
@@ -9,12 +12,15 @@ import com.jintoga.currencyconverter.R
 import com.jintoga.currencyconverter.entity.Rate
 import com.jintoga.currencyconverter.inflate
 import kotlinx.android.synthetic.main.item_currency_converter.view.*
+import java.util.*
+import java.util.regex.Pattern
 
 class CurrencyConverterAdapter(private val actionListener: ActionListener)
     : RecyclerView.Adapter<CurrencyConverterAdapter.ViewHolder>() {
 
     interface ActionListener {
-        fun onRateFocusChange(rate: Rate)
+        fun onRateFocusChanged(rate: Rate)
+        fun onRateValueChanged(rateValue: Double)
     }
 
     private val rates = ArrayList<Rate>()
@@ -28,7 +34,7 @@ class CurrencyConverterAdapter(private val actionListener: ActionListener)
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = rates[position]
-        holder.bindData(item, actionListener)
+        holder.bindData(item)
     }
 
     fun bindData(rates: List<Rate>) {
@@ -47,22 +53,46 @@ class CurrencyConverterAdapter(private val actionListener: ActionListener)
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
-        fun bindData(rate: Rate, actionListener: ActionListener) = with(itemView) {
-            currencyCode.text = rate.code
-            currencyValue.setText(rate.value.toString())
+        private fun setActionListener(rate: Rate) = with(itemView) {
             itemView.setOnClickListener {
                 //This will trigger OnFocusChanged event of EditText
                 currencyValue.requestFocus()
             }
             currencyValue.setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus) {
-                    actionListener.onRateFocusChange(rate)
+                    actionListener.onRateFocusChanged(rate)
                     currencyValue.selectAll()
                     showSoftKeyboard()
                 } else {
                     hideSoftKeyboard()
                 }
             }
+            currencyValue.addTextChangedListener(object : TextWatcher {
+                override fun afterTextChanged(p0: Editable?) {
+                    val rateValueString = currencyValue.text?.toString()
+                    if (rateValueString != null
+                            && Pattern.matches("\\d+\\.?\\d*", rateValueString)) {
+                        val rateValue = rateValueString.toDouble()
+                        actionListener.onRateValueChanged(rateValue)
+                    } else if (rateValueString != null
+                            && rateValueString.isNotEmpty()) {
+                        currencyValue.error = context.getString(R.string.invalid_format)
+                    }
+                }
+
+                override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                }
+
+                override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+                }
+            })
+        }
+
+        fun bindData(rate: Rate) = with(itemView) {
+            currencyCode.keyListener = DigitsKeyListener.getInstance("0123456789.")
+            currencyCode.text = rate.code
+            currencyValue.setText(rate.value.toString())
+            setActionListener(rate)
         }
 
         private fun showSoftKeyboard() = with(itemView) {

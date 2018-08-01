@@ -2,6 +2,7 @@ package com.jintoga.currencyconverter.ui.converter
 
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
 import com.jintoga.currencyconverter.R
@@ -48,7 +49,12 @@ class CurrencyConverterActivity
         recyclerView.adapter = adapter
     }
 
-    override fun onRateFocusChange(rate: Rate) {
+    override fun onRateValueChanged(rateValue: Double) {
+        Log.d("T", rateValue.toString())
+        //ToDO
+    }
+
+    override fun onRateFocusChanged(rate: Rate) {
         adapter.moveItemToFirstPosition(rate)
     }
 

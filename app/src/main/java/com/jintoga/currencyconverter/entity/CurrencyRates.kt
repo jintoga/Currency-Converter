@@ -6,7 +6,7 @@ import java.util.*
 data class CurrencyRates(
         @SerializedName("base") val base: String? = null,
         @SerializedName("date") val date: String? = null,
-        @SerializedName("rates") private val rates: TreeMap<String, Float>? = null
+        @SerializedName("rates") private val rates: TreeMap<String, Double>? = null
 ) {
     val currencyRates: List<Rate>?
         get() = rates?.map {
