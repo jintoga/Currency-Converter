@@ -3,6 +3,7 @@ package com.jintoga.currencyconverter.ui.converter
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.view.View
+import android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
 import com.jintoga.currencyconverter.R
 import com.jintoga.currencyconverter.appComponent
 import com.jintoga.currencyconverter.entity.CurrencyRates
@@ -40,6 +41,8 @@ class CurrencyConverterActivity
 
     private fun init() {
         recyclerView.setHasFixedSize(true)
+        //Prevent focusing in EditText immediately
+        recyclerView.descendantFocusability = FOCUS_BEFORE_DESCENDANTS
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = CurrencyConverterAdapter(this)
         recyclerView.adapter = adapter

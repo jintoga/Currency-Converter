@@ -13,10 +13,12 @@ class CurrencyConverterPresenter(private val currencyManager: CurrencyManager)
     private var disposable: Disposable? = null
 
     override fun startUpdatingCurrencyRates() {
-        view?.onUpdating()
         disposable = currencyManager.getCurrencyRates()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
+                .doOnSubscribe {
+                    view?.onUpdating()
+                }
                 .subscribe(
                         {
                             view?.onUpdated(it)
