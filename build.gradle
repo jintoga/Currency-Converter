@@ -36,6 +36,7 @@ ext {
     RETROFIT_VERSION = '2.3.0'
     DAGGER2_VERSION = '2.11'
     GLIDE_VERSION = '4.7.1'
+    ROOM_VERSION = '1.1.1'
 }
 
 task clean(type: Delete) {

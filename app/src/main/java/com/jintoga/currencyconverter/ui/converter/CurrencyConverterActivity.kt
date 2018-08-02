@@ -7,8 +7,8 @@ import android.view.View
 import android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
 import com.jintoga.currencyconverter.R
 import com.jintoga.currencyconverter.appComponent
-import com.jintoga.currencyconverter.entity.CurrencyRates
-import com.jintoga.currencyconverter.entity.Rate
+import com.jintoga.currencyconverter.entity.currencyrates.CurrencyRates
+import com.jintoga.currencyconverter.entity.currencyrates.Rate
 import com.jintoga.currencyconverter.ui.BaseMvpActivity
 import com.jintoga.currencyconverter.ui.converter.adapter.CurrencyConverterAdapter
 import kotlinx.android.synthetic.main.activity_currency_converter.*
@@ -65,7 +65,7 @@ class CurrencyConverterActivity
     override fun onUpdated(currencyRates: CurrencyRates) {
         progressBar.visibility = View.GONE
         currencyRates.currencyRates?.let {
-            adapter.bindData(it)
+            adapter.updateRates(it)
         }
     }
 

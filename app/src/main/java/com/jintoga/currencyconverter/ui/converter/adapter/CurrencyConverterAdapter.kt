@@ -1,6 +1,7 @@
 package com.jintoga.currencyconverter.ui.converter.adapter
 
 import android.content.Context
+import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
@@ -9,11 +10,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import com.jintoga.currencyconverter.R
-import com.jintoga.currencyconverter.entity.Rate
+import com.jintoga.currencyconverter.entity.currencyrates.Rate
 import com.jintoga.currencyconverter.inflate
 import kotlinx.android.synthetic.main.item_currency_converter.view.*
 import java.util.*
 import java.util.regex.Pattern
+
 
 class CurrencyConverterAdapter(private val actionListener: ActionListener)
     : RecyclerView.Adapter<CurrencyConverterAdapter.ViewHolder>() {
@@ -30,6 +32,12 @@ class CurrencyConverterAdapter(private val actionListener: ActionListener)
         return ViewHolder(view)
     }
 
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty()) {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
     override fun getItemCount(): Int = rates.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -37,10 +45,11 @@ class CurrencyConverterAdapter(private val actionListener: ActionListener)
         holder.bindData(item)
     }
 
-    fun bindData(rates: List<Rate>) {
+    fun updateRates(rates: List<Rate>) {
+        val diffResult = DiffUtil.calculateDiff(CurrencyRatesDiffCallback(this.rates, rates))
+        diffResult.dispatchUpdatesTo(this)
         this.rates.clear()
         this.rates.addAll(rates)
-        notifyDataSetChanged()
     }
 
     fun moveItemToFirstPosition(rate: Rate) {
@@ -52,7 +61,6 @@ class CurrencyConverterAdapter(private val actionListener: ActionListener)
     }
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-
         private fun setActionListener(rate: Rate) = with(itemView) {
             itemView.setOnClickListener {
                 //This will trigger OnFocusChanged event of EditText
@@ -89,9 +97,9 @@ class CurrencyConverterAdapter(private val actionListener: ActionListener)
         }
 
         fun bindData(rate: Rate) = with(itemView) {
-            currencyCode.keyListener = DigitsKeyListener.getInstance("0123456789.")
             currencyCode.text = rate.code
-            currencyValue.setText(rate.value.toString())
+            currencyValue.keyListener = DigitsKeyListener.getInstance("0123456789.")
+            currencyValue.setText(String.format("%.2f", rate.value))
             setActionListener(rate)
         }
 

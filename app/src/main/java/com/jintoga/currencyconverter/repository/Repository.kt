@@ -1,10 +1,9 @@
-package com.jintoga.currencyconverter.network
+package com.jintoga.currencyconverter.repository
 
 import com.jintoga.currencyconverter.entity.currencyrates.CurrencyRates
 import io.reactivex.Observable
-import retrofit2.http.GET
 
-interface ClientApi {
-    @GET("latest?base=EUR")
+interface Repository {
     fun getCurrencyRates(): Observable<CurrencyRates>
+    fun saveCurrencyRates(currencyRates: CurrencyRates)
 }

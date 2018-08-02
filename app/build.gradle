@@ -52,6 +52,13 @@ dependencies {
     implementation "com.squareup.retrofit2:adapter-rxjava2:$RETROFIT_VERSION"
     implementation "com.squareup.retrofit2:converter-gson:$RETROFIT_VERSION"
 
+    //Room
+    implementation "android.arch.persistence.room:runtime:$ROOM_VERSION"
+    kapt "android.arch.persistence.room:compiler:$ROOM_VERSION"
+
+    //RxJava for supporting  Room
+    implementation "android.arch.persistence.room:rxjava2:$ROOM_VERSION"
+
     //Anko
     implementation "org.jetbrains.anko:anko-design:$anko_version"
 
