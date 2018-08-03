@@ -4,5 +4,5 @@ import com.jintoga.currencyconverter.entity.currencyrates.CurrencyRates
 import io.reactivex.Observable
 
 interface CurrencyManager {
-    fun getCurrencyRates(): Observable<CurrencyRates>
+    fun getCurrencyRates(base: String): Observable<CurrencyRates>
 }

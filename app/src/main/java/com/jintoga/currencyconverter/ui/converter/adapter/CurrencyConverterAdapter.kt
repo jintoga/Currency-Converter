@@ -1,17 +1,17 @@
 package com.jintoga.currencyconverter.ui.converter.adapter
 
 import android.content.Context
-import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
-import android.text.Editable
-import android.text.TextWatcher
-import android.text.method.DigitsKeyListener
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
+import com.jakewharton.rxbinding2.widget.RxTextView
 import com.jintoga.currencyconverter.R
 import com.jintoga.currencyconverter.entity.currencyrates.Rate
 import com.jintoga.currencyconverter.inflate
+import com.jintoga.currencyconverter.ui.converter.CurrencyConverterPresenter
+import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.item_currency_converter.view.*
 import java.util.*
 import java.util.regex.Pattern
@@ -21,98 +21,178 @@ class CurrencyConverterAdapter(private val actionListener: ActionListener)
     : RecyclerView.Adapter<CurrencyConverterAdapter.ViewHolder>() {
 
     interface ActionListener {
-        fun onRateFocusChanged(rate: Rate)
-        fun onRateValueChanged(rateValue: Double)
+        fun onBaseCurrencyChanged(rate: Rate)
     }
 
-    private val rates = ArrayList<Rate>()
+    companion object {
+        private const val INIT_AMOUNT = 100.0
+    }
+
+    private val currentRates = ArrayList<Rate>()
+    private val amountEditTexts = HashMap<String, EditText>()
+    private var baseAmount = INIT_AMOUNT
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = parent.inflate(R.layout.item_currency_converter)
         return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
-        if (payloads.isEmpty()) {
-            super.onBindViewHolder(holder, position, payloads)
-        }
-    }
-
-    override fun getItemCount(): Int = rates.size
+    override fun getItemCount(): Int = currentRates.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = rates[position]
-        holder.bindData(item)
+        val rate = currentRates[position]
+        holder.bindData(rate)
+        holder.setClickListener()
+        holder.setFocusChangedListener(rate)
+        amountEditTexts[rate.code] = holder.itemView.amountEditText
     }
 
-    fun updateRates(rates: List<Rate>) {
-        val diffResult = DiffUtil.calculateDiff(CurrencyRatesDiffCallback(this.rates, rates))
-        diffResult.dispatchUpdatesTo(this)
-        this.rates.clear()
-        this.rates.addAll(rates)
-    }
-
-    fun moveItemToFirstPosition(rate: Rate) {
-        val selectedPosition = rates.indexOf(rate)
-        if (rates.remove(rate)) {
-            rates.add(0, rate)
-            notifyItemMoved(selectedPosition, 0)
+    private fun ViewHolder.setFocusChangedListener(rate: Rate) {
+        val amountEditText = itemView.amountEditText
+        amountEditText.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                val selectedPosition = currentRates.indexOf(rate)
+                if (currentRates.remove(rate)) {
+                    currentRates.add(0, rate)
+                    notifyItemMoved(selectedPosition, 0)
+                }
+                actionListener.onBaseCurrencyChanged(rate)
+                amountEditText.selectAll()
+                val disposable = getAmountEditTextSubscription(rate, amountEditText)
+                setAmountEditTextDisposable(disposable)
+                showSoftKeyboard()
+            } else {
+                hideSoftKeyboard()
+                disposeAmountEditText()
+            }
         }
     }
+
+    fun initRates(rates: List<Rate>) {
+        currentRates.addAll(rates)
+        notifyDataSetChanged()
+    }
+
+    fun updateRates(newRates: List<Rate>) {
+        currentRates.forEach loop@{ currentRate ->
+            newRates.forEach { newRate ->
+                if (currentRate.code == newRate.code) {
+                    currentRate.value = newRate.value
+                    return@loop
+                }
+            }
+        }
+        refreshEditTexts()
+    }
+
+    private fun refreshEditTexts() {
+        for (code in amountEditTexts.keys) {
+            val value = getCurrencyValue(code)
+            if (value != null) {
+                updateCurrencyValue(code, value)
+            }
+        }
+    }
+
+    private fun getCurrencyValue(code: String): Double? =
+            currentRates.firstOrNull { it.code == code }?.value
+
+    private fun updateCurrencyValue(code: String, value: Double) {
+        val amountEditText = amountEditTexts[code]
+        var isFirstEditText = false
+        if (currentRates.isNotEmpty()) {
+            val firstEditText = currentRates[0]
+            if (firstEditText.code == code) {
+                isFirstEditText = true
+            }
+        }
+        if (!isFirstEditText
+                && amountEditText != null
+                && value != CurrencyConverterPresenter.BASE_VALUE) {
+            amountEditText.bindValue(value)
+        }
+    }
+
+    private fun EditText.bindValue(value: Double) {
+        val calculatedAmount = value * baseAmount
+        //Locale.ROOT for using '.' as decimal separator
+        setText(String.format(Locale.ROOT, "%.2f", calculatedAmount))
+    }
+
+    private fun getAmountEditTextSubscription(rate: Rate, editText: EditText): Disposable =
+            RxTextView.textChanges(editText)
+                    .map {
+                        return@map parseAmountText(it.toString(), rate)
+                    }
+                    .doOnNext({
+                        baseAmount = it
+                        refreshEditTexts()
+                    })
+                    .subscribe()
+
+    private fun parseAmountText(text: String, rate: Rate): Double {
+        var parsedValue = 0.0
+        if (isParsableText(text)) {
+            val currentAmount = text.toDouble()
+            //Base Currency changed so BaseAmount changed
+            if (currentAmount == baseAmount) {
+                parsedValue = baseAmount
+            } else {
+                val value = rate.value
+                if (value > 0.0) {
+                    parsedValue = currentAmount / value
+                }
+            }
+        }
+        return parsedValue
+    }
+
+    /**
+     * check if text is parsable to Double with '.' being decimal separator symbol
+     */
+    private fun isParsableText(text: String) =
+            Pattern.matches("\\d+\\.?\\d*", text)
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private fun setActionListener(rate: Rate) = with(itemView) {
-            itemView.setOnClickListener {
-                //This will trigger OnFocusChanged event of EditText
-                currencyValue.requestFocus()
-            }
-            currencyValue.setOnFocusChangeListener { _, hasFocus ->
-                if (hasFocus) {
-                    actionListener.onRateFocusChanged(rate)
-                    currencyValue.selectAll()
-                    showSoftKeyboard()
-                } else {
-                    hideSoftKeyboard()
-                }
-            }
-            currencyValue.addTextChangedListener(object : TextWatcher {
-                override fun afterTextChanged(p0: Editable?) {
-                    val rateValueString = currencyValue.text?.toString()
-                    if (rateValueString != null
-                            && Pattern.matches("\\d+\\.?\\d*", rateValueString)) {
-                        val rateValue = rateValueString.toDouble()
-                        actionListener.onRateValueChanged(rateValue)
-                    } else if (rateValueString != null
-                            && rateValueString.isNotEmpty()) {
-                        currencyValue.error = context.getString(R.string.invalid_format)
-                    }
-                }
 
-                override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
-                }
-
-                override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
-                }
-            })
-        }
+        private var amountEditTextDisposable: Disposable? = null
 
         fun bindData(rate: Rate) = with(itemView) {
             currencyCode.text = rate.code
-            currencyValue.keyListener = DigitsKeyListener.getInstance("0123456789.")
-            currencyValue.setText(String.format("%.2f", rate.value))
-            setActionListener(rate)
+            amountEditText.bindValue(rate.value)
         }
 
-        private fun showSoftKeyboard() = with(itemView) {
-            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(currencyValue, InputMethodManager.SHOW_IMPLICIT)
+        fun setClickListener() = with(itemView) {
+            itemView.setOnClickListener {
+                //Change BaseAmount to amount of clicked ItemView's EditText
+                val currentAmountString = amountEditText.text.toString()
+                baseAmount = if (isParsableText(currentAmountString)) {
+                    currentAmountString.toDouble()
+                } else {
+                    0.0
+                }
+                //This will trigger OnFocusChanged event of EditText
+                amountEditText.requestFocus()
+            }
         }
 
-        private fun hideSoftKeyboard() = with(itemView) {
+        fun disposeAmountEditText() {
+            amountEditTextDisposable?.dispose()
+        }
+
+        fun setAmountEditTextDisposable(disposable: Disposable) {
+            this@ViewHolder.amountEditTextDisposable = disposable
+        }
+
+        fun showSoftKeyboard() = with(itemView) {
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.hideSoftInputFromWindow(currencyValue.windowToken, 0)
+            imm.showSoftInput(amountEditText, InputMethodManager.SHOW_IMPLICIT)
+        }
+
+        fun hideSoftKeyboard() = with(itemView) {
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(amountEditText.windowToken, 0)
         }
 
     }
-
 }

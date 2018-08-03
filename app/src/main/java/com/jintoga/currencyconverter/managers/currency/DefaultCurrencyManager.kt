@@ -14,10 +14,10 @@ class DefaultCurrencyManager(private val clientApi: ClientApi,
         private const val UPDATE_FREQUENCY = 1L //1 second
     }
 
-    override fun getCurrencyRates(): Observable<CurrencyRates> {
+    override fun getCurrencyRates(base: String): Observable<CurrencyRates> {
         val sources = mutableListOf(
                 getFromDb(),
-                getFromApi()
+                getFromApi(base)
         )
         return Observable.concat(sources)
     }
@@ -25,11 +25,11 @@ class DefaultCurrencyManager(private val clientApi: ClientApi,
     private fun getFromDb(): Observable<CurrencyRates> =
             repository.getCurrencyRates()
 
-    private fun getFromApi(): Observable<CurrencyRates> =
+    private fun getFromApi(base: String): Observable<CurrencyRates> =
             Observable
                     .interval(UPDATE_FREQUENCY, TimeUnit.SECONDS)
                     .flatMap {
-                        clientApi.getCurrencyRates()
+                        clientApi.getCurrencyRates(base)
                     }
                     .doOnNext { saveToDb(it) }
 

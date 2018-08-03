@@ -69,4 +69,6 @@ dependencies {
     //Mosby MVP
     implementation 'com.hannesdorfmann.mosby3:mvp:3.0.4'
 
+    //RxBinding
+    implementation 'com.jakewharton.rxbinding2:rxbinding-appcompat-v7:2.0.0'
 }

@@ -20,15 +20,10 @@ data class CurrencyRates(
         @TypeConverters(RateTypeConverter::class)
         @ColumnInfo(name = "rates")
         @SerializedName("rates")
-        var rates: TreeMap<String, Double>? = null
+        var ratesMap: TreeMap<String, Double>? = null
 ) {
 
     @ColumnInfo(name = "id")
     @PrimaryKey
-    var id: Long = 0
-
-    val currencyRates: List<Rate>?
-        get() = rates?.map {
-            Rate(it.key, it.value)
-        }
+    var id: Long = 0 //Only 1 item in DB
 }

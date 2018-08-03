@@ -1,13 +1,11 @@
 package com.jintoga.currencyconverter.ui.converter
 
 import android.os.Bundle
+import android.support.v4.content.ContextCompat
 import android.support.v7.widget.LinearLayoutManager
-import android.util.Log
-import android.view.View
 import android.view.ViewGroup.FOCUS_BEFORE_DESCENDANTS
 import com.jintoga.currencyconverter.R
 import com.jintoga.currencyconverter.appComponent
-import com.jintoga.currencyconverter.entity.currencyrates.CurrencyRates
 import com.jintoga.currencyconverter.entity.currencyrates.Rate
 import com.jintoga.currencyconverter.ui.BaseMvpActivity
 import com.jintoga.currencyconverter.ui.converter.adapter.CurrencyConverterAdapter
@@ -41,6 +39,15 @@ class CurrencyConverterActivity
     }
 
     private fun init() {
+        swipeToRefresh.setColorSchemeColors(ContextCompat.getColor(this, R.color.colorAccent))
+        swipeToRefresh.setOnRefreshListener {
+            presenter.stopUpdatingCurrencyRates()
+            presenter.startUpdatingCurrencyRates()
+        }
+        initRecyclerView()
+    }
+
+    private fun initRecyclerView() {
         recyclerView.setHasFixedSize(true)
         //Prevent focusing in EditText immediately
         recyclerView.descendantFocusability = FOCUS_BEFORE_DESCENDANTS
@@ -49,28 +56,31 @@ class CurrencyConverterActivity
         recyclerView.adapter = adapter
     }
 
-    override fun onRateValueChanged(rateValue: Double) {
-        Log.d("T", rateValue.toString())
-        //ToDO
-    }
-
-    override fun onRateFocusChanged(rate: Rate) {
-        adapter.moveItemToFirstPosition(rate)
+    override fun onBaseCurrencyChanged(rate: Rate) {
+        presenter.setBaseCurrency(rate.code)
     }
 
     override fun onUpdating() {
-        progressBar.visibility = View.VISIBLE
+        swipeToRefresh.isRefreshing = true
     }
 
-    override fun onUpdated(currencyRates: CurrencyRates) {
-        progressBar.visibility = View.GONE
-        currencyRates.currencyRates?.let {
-            adapter.updateRates(it)
+    override fun onUpdated(currencyRates: List<Rate>) {
+        swipeToRefresh.isRefreshing = false
+        swipeToRefresh.isEnabled = false
+        if (adapter.itemCount == 0) {
+            //IMPORTANT: Use map for updating values so prevent ViewHolders from being recycled
+            // so it won't mess up map's EditTexts
+            recyclerView.setItemViewCacheSize(currencyRates.size)
+            adapter.initRates(currencyRates)
+        } else {
+            adapter.updateRates(currencyRates)
         }
     }
 
     override fun onError(message: String) {
-        progressBar.visibility = View.GONE
+        swipeToRefresh.isRefreshing = false
+        swipeToRefresh.isEnabled = true
         snackbar(rootView, message)
     }
+
 }

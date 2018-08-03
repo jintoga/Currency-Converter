@@ -12,28 +12,30 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@android:color/black"
-        android:textSize="18sp"
+        android:textSize="@dimen/default_text_size"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/currencyValue"
+        app:layout_constraintEnd_toStartOf="@id/amountEditText"
         app:layout_constraintHorizontal_chainStyle="spread_inside"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="CURRENCY CODE" />
 
     <EditText
-        android:id="@+id/currencyValue"
+        android:id="@+id/amountEditText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:digits="0123456789."
+        android:gravity="center"
         android:imeOptions="actionDone"
         android:inputType="numberDecimal|number"
         android:maxWidth="200dp"
-        android:minWidth="50dp"
+        android:minWidth="30dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_chainStyle="spread_inside"
         app:layout_constraintStart_toEndOf="@id/currencyCode"
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="LabelFor"
-        tools:text="124124 12412 4124 124 124 14" />
+        tools:text="1241242514" />
 
 </android.support.constraint.ConstraintLayout>
